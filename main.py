@@ -13,8 +13,9 @@ def process_video(video_path, min_similarity, output_folder):
         print("Error opening video file")
         return
 
-    match_frame = None
     prev_frame = None
+
+    kp1, ds1 = None, None
 
     i = 0
 
@@ -28,23 +29,24 @@ def process_video(video_path, min_similarity, output_folder):
 
         if prev_frame is None:
             prev_frame = frame
-            match_frame = frame
+            kp1, des1 = orb.detectAndCompute(prev_frame, None)
+            cv2.imwrite(os.path.join(output_folder, os.path.basename(video_path)+"-"+str(i)+".png"), prev_frame)
             print("Initial frame")
             continue
 
         cv2.imshow('Frame', frame)
 
-        similarity = orb_similarity(match_frame, frame)
+        similarity = orb_similarity(kp1, des1, frame)
 
         print(f"Similarity: {similarity}, ", end='')
 
         if similarity < min_similarity:
-            match_frame = prev_frame
+            kp1, des1 = orb.detectAndCompute(prev_frame, None)
 
             if(not os.path.isdir(output_folder)):
                 os.mkdir(output_folder)
 
-            cv2.imwrite(os.path.join(output_folder, os.path.basename(video_path)+"-"+str(i)+".png"), match_frame)
+            cv2.imwrite(os.path.join(output_folder, os.path.basename(video_path)+"-"+str(i)+".png"), prev_frame)
             print("Lost continuity, new match frame")
         else:
             print("Skipped!")
@@ -59,12 +61,11 @@ def process_video(video_path, min_similarity, output_folder):
 
 
 orb = cv2.ORB_create()
+bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-def orb_similarity(img1, img2):
-    kp1, des1 = orb.detectAndCompute(img1, None)
+def orb_similarity(kp1, des1, img2):
     kp2, des2 = orb.detectAndCompute(img2, None)
 
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
     matches = bf.match(des1, des2)
 
     similarity = len(matches) / min(len(kp1), len(kp2))

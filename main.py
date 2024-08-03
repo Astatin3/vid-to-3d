@@ -16,22 +16,23 @@ def process_video(video_path, min_similarity, output_folder):
     prev_frame = None
 
     kp1, ds1 = None, None
-
     i = 0
 
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret: break
 
+
+
         i += 1
 
         print(f"Frame {i}: ", end='')
 
         if prev_frame is None:
-            prev_frame = frame
-            kp1, des1 = orb.detectAndCompute(prev_frame, None)
-            cv2.imwrite(os.path.join(output_folder, os.path.basename(video_path)+"-"+str(i)+".png"), prev_frame)
+            kp1, des1 = orb.detectAndCompute(frame, None)
+            cv2.imwrite(os.path.join(output_folder, os.path.basename(video_path)+"-"+str(i)+".png"), frame)
             print("Initial frame")
+            prev_frame = frame
             continue
 
         cv2.imshow('Frame', frame)
@@ -61,12 +62,16 @@ def process_video(video_path, min_similarity, output_folder):
 
 
 orb = cv2.ORB_create()
-bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
 
 def orb_similarity(kp1, des1, img2):
     kp2, des2 = orb.detectAndCompute(img2, None)
 
     matches = bf.match(des1, des2)
+    # try:
+    #     matches = bf.match(des1, des2)
+    # except:
+    #     return 0.0
 
     similarity = len(matches) / min(len(kp1), len(kp2))
     return similarity
